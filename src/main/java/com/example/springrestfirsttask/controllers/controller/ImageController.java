@@ -17,7 +17,7 @@ import java.util.Optional;
 @RequestMapping("/image")
 @RequiredArgsConstructor
 public class ImageController {
-
+//мууу
     @Autowired
     private final ImageService imageService;
     @Autowired
