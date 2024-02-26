@@ -1,0 +1,18 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/spring_rest
+    username: postgres
+    password: postgres
+    jpa:
+      properties:
+        hibernate:
+          ddl-auto: update  # create, update, validate, or none
+          show_sql: true
+          format_sql: true
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+bucket: /Users/rail/IdeaProjects/SkillSpace_Enterprise/9SpringRest/SpringRestFirstTask/SpringRestFirstTask/src/main/resources/static

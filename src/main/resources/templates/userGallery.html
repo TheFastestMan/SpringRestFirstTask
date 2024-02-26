@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User gallery</title>
+</head>
+<body>
+<h1 th:text="${user.username}">User Name</h1>
+
+<form th:action="@{/image/{id}/add(id=${user.id})}" method="post" enctype="multipart/form-data">
+    <label for="image">Image
+        <input id="image" type="file" name="image"/> <!-- 'name' должно совпадать с @RequestParam в контроллере -->
+    </label>
+    <input type="submit" value="Add">
+</form>
+
+
+<div th:each="user : ${images}"><!-- ${images} должно совпадать с model.addAttribute("images", imageService.findImagesByUserId(id)); в контроллере -->
+    <img width="400" th:src="@{/rest/images/{id}(id=${user.id})}" alt="User Image"/><!-- источник ресурса, в данном случае источник REST controller -->
+
+    <form th:action="@{/image/{id}/delete(id=${user.id})}" method="post">
+        <input type="submit" value="Delete">
+    </form>
+
+    <form th:action="@{/image/{id}/update(id=${user.id})}" method="post" enctype="multipart/form-data">
+        <label for="image">Image
+            <input id="image" type="file" name="image"/> <!-- 'name' должно совпадать с @RequestParam в контроллере -->
+        </label>
+        <input type="submit" value="Update">
+    </form>
+
+
+</div>
+
+</body>
+</html>
