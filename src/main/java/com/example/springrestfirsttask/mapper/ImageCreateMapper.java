@@ -3,11 +3,14 @@ package com.example.springrestfirsttask.mapper;
 import com.example.springrestfirsttask.dto.ImageCreateDTO;
 import com.example.springrestfirsttask.entity.Image;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
-//@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring")
 public interface ImageCreateMapper {
 
-//    ImageCreateDTO imageToImageCreateDTO (Image image);
-//
-//    Image imageCreateDTOtoImage(ImageCreateDTO dto);
+    @Mapping(target = "image", ignore = true) // Ignore
+    ImageCreateDTO imageToImageCreateDTO(Image image);
+
+    @Mapping(target = "image", source = "image.originalFilename")
+    Image imageCreateDTOtoImage(ImageCreateDTO dto);
 }

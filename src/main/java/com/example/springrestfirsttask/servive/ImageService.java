@@ -1,8 +1,14 @@
 package com.example.springrestfirsttask.servive;
 
+import com.example.springrestfirsttask.dto.ImageCreateDTO;
+import com.example.springrestfirsttask.dto.ImageReadDTO;
+import com.example.springrestfirsttask.dto.UserReadDTO;
 import com.example.springrestfirsttask.entity.Image;
 import com.example.springrestfirsttask.entity.User;
 
+import com.example.springrestfirsttask.mapper.ImageCreateMapper;
+import com.example.springrestfirsttask.mapper.ImageReadMapper;
+import com.example.springrestfirsttask.mapper.UserReadMapper;
 import com.example.springrestfirsttask.repository.ImageRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -10,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,6 +24,8 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+
 
 
 @Service
@@ -27,6 +34,9 @@ import java.util.Optional;
 public class ImageService {
     private final ImageRepository imageRepository;
     private final UserService userService;
+    private final UserReadMapper userReadMapper;
+    private final ImageReadMapper imageReadMapper;
+    private final ImageCreateMapper imageCreateMapper;
 
 
     @Value("${bucket}")
@@ -34,45 +44,69 @@ public class ImageService {
 
     @SneakyThrows
     @Transactional
-    public void addImage(Image image, MultipartFile content, Long id) {
-        if (!content.isEmpty()) {
-            String filename = content.getOriginalFilename();
-            User user = findUser(id).orElseThrow(() ->
-                    new IllegalArgumentException("User not found with id: " + id));
-            image.setImage(filename);
+    public void addImage(ImageCreateDTO imageDTO) throws IOException {
+        if (!imageDTO.getImage().isEmpty()) {
+            Image image = imageCreateMapper.imageCreateDTOtoImage(imageDTO);
+
+            // Здесь загружаем файл и получаем имя файла или путь к нему
+            String filename = imageDTO.getImage().getOriginalFilename();
+            upload(filename, imageDTO.getImage().getInputStream()); // Метод upload должен возвращать путь к файлу после его сохранения
+
+            Optional<UserReadDTO> userReadDTO = Optional.ofNullable(findUser(imageDTO.getUserId())
+                    .orElseThrow(()
+                            -> new IllegalArgumentException("User not found with id: " + imageDTO.getUserId())));
+            User user = userReadMapper.userReadDTOtoUser(userReadDTO.get());
             image.setUser(user);
-            upload(filename, content.getInputStream());
+
             imageRepository.save(image);
         }
     }
 
-    public Optional<User> findUser(Long id) {
-        return userService.findById(id);
+
+    public Optional<UserReadDTO> findUser(Long id) {
+        return userService.findById(id)
+                .map(userReadMapper::userToUserReadDTO);
+    }
+    public Long findUserIdByImageId(Long imageId) {
+        return imageRepository.findById(imageId)
+                .map(Image::getUser)
+                .map(User::getId)
+                .orElse(null);
     }
 
-    public List<Image> findImagesByUserId(Long id) {
-        return imageRepository.findAllByUserId(id);
+    public List<ImageReadDTO> findImagesByUserIdDTO(Long id) {
+        List<Image> images = imageRepository.findAllByUserId(id);
+        return images.stream()
+                .map(imageReadMapper::imageToImageReadDTO)
+                .collect(Collectors.toList());
     }
 
-    public Optional<Image> findUserImage(Long id) {
-        return imageRepository.findById(id);
+
+    public Optional<ImageReadDTO> findUserImage(Long id) {
+        return imageRepository.findById(id)
+                .map(imageReadMapper::imageToImageReadDTO);
     }
+
 
     @Transactional
-    public void delete(Image image) {
+    public void delete(ImageReadDTO dto) {
+        Image image = imageReadMapper.imageReadDTOtoImage(dto);
         imageRepository.delete(image);
     }
 
     @SneakyThrows
     @Transactional
-    public void updateImage(Image currentImage, MultipartFile newImageContent) {
-        String filename = newImageContent.getOriginalFilename();
-        upload(filename, newImageContent.getInputStream());
-        // Обновляем путь к файлу изображения в базе данных
-        currentImage.setImage(filename);
-        imageRepository.save(currentImage);
-    }
+    public void updateImage(ImageCreateDTO imageDTO) {
+        Image image = imageRepository.findById(imageDTO.getId())
+                .orElseThrow(() -> new IllegalArgumentException("Image not found with id: " + imageDTO.getId()));
 
+        if (!imageDTO.getImage().isEmpty()) {
+            String filename = StringUtils.cleanPath(imageDTO.getImage().getOriginalFilename());
+            upload(filename, imageDTO.getImage().getInputStream());
+            image.setImage(filename); // Обновляем путь к файлу
+            imageRepository.save(image); // Сохраняем обновленное изображение
+        }
+    }
 
     public Optional<byte[]> findImageById(Long id) {
         return imageRepository.findById(id)

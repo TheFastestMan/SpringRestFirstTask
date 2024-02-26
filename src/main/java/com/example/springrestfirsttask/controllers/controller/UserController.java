@@ -1,7 +1,7 @@
 package com.example.springrestfirsttask.controllers.controller;
 
-import com.example.springrestfirsttask.entity.Image;
-import com.example.springrestfirsttask.entity.User;
+import com.example.springrestfirsttask.dto.ImageReadDTO;
+import com.example.springrestfirsttask.dto.UserReadDTO;
 import com.example.springrestfirsttask.servive.ImageService;
 import com.example.springrestfirsttask.servive.UserService;
 import lombok.RequiredArgsConstructor;
@@ -10,8 +10,8 @@ import org.springframework.stereotype.Controller;
 
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -31,16 +31,16 @@ public class UserController {
         return "users";
     }
 
+
     @GetMapping("/{id}")
     public String user(@PathVariable("id") Long id, Model model) {
-        Optional<User> userOptional = userService.findById(id);
-        model.addAttribute("images", imageService.findImagesByUserId(id));
-        if (userOptional.isPresent()) {
-            model.addAttribute("user", userOptional.get());
-        } else {
-            return "redirect:/users";
-        }
-        return "userGallery";
+        Optional<UserReadDTO> userOptional = userService.findUserByIdDTO(id);
+        List<ImageReadDTO> imageDTOs = imageService.findImagesByUserIdDTO(id);
+        model.addAttribute("images", imageDTOs);
+        userOptional.ifPresent(user -> model.addAttribute("user", user));
+        return userOptional.isPresent()
+                ? "userGallery"
+                : "redirect:/users";
     }
 
 
